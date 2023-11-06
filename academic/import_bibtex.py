@@ -14,6 +14,16 @@ from academic.generate_markdown import GenerateMarkdown
 from academic.publication_type import PUB_TYPES_BIBTEX_TO_CSL
 
 
+def skip_convert_to_unicode(record):
+    bkp = ""
+    if "abstract" in record:
+        bkp = record["abstract"]
+    record["abstract"] = ""
+    record = convert_to_unicode(record)
+    record["abstract"] = bkp
+    return record
+
+
 def import_bibtex(
     bibtex,
     pub_dir=os.path.join("content", "publication"),
@@ -36,7 +46,7 @@ def import_bibtex(
     # Load BibTeX file for parsing.
     with open(bibtex, "r", encoding="utf-8") as bibtex_file:
         parser = BibTexParser(common_strings=True)
-        parser.customization = convert_to_unicode
+        parser.customization = skip_convert_to_unicode
         parser.ignore_nonstandard_types = False
         bib_database = bibtexparser.load(bibtex_file, parser=parser)
         for entry in bib_database.entries:
@@ -143,7 +153,7 @@ def parse_bibtex_entry(
     page.yaml["publication_types"] = [pub_type]
 
     if "abstract" in entry:
-        page.yaml["abstract"] = clean_bibtex_str(entry["abstract"])
+        page.yaml["abstract"] = clean_bibtex_str_math(entry["abstract"])
     else:
         page.yaml["abstract"] = ""
 
@@ -237,6 +247,15 @@ def clean_bibtex_authors(author_str):
         authors.append(" ".join(first_names) + " " + last_name)
 
     return authors
+
+
+def clean_bibtex_str_math(s):
+    """Clean BibTeX string and escape TOML special characters"""
+    # s = s.replace("\\", "")
+    s = s.replace('"', '\\"')
+    # s = s.replace("{", "").replace("}", "")
+    s = s.replace("\t", " ").replace("\n", " ").replace("\r", "")
+    return s
 
 
 def clean_bibtex_str(s):
